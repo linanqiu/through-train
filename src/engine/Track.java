@@ -39,4 +39,8 @@ public class Track {
 	public String toString() {
 		return String.format("@%d TRA(%s -> %s) %s %d", id, stations.a, stations.b, type, length);
 	}
+
+	public enum TrackType {
+		EMPTY, WHITE, BLUE, PINK, GREEN, YELLOW, RED, BLACK, ORANGE
+	}
 }

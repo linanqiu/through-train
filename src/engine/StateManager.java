@@ -8,8 +8,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import engine.Track.TrackType;
 
 public class StateManager {
 	public static void readData(State state, String path) throws IOException {
@@ -71,7 +74,7 @@ public class StateManager {
 
 		List<String> data = Files.lines(ticketsPath).collect(Collectors.toList());
 
-		List<Ticket> ticketList = new LinkedList<>();
+		LinkedList<Ticket> ticketList = new LinkedList<>();
 
 		for (String line : data) {
 			String[] elements = line.trim().split(",");
@@ -104,6 +107,7 @@ public class StateManager {
 	private static void setupCards(State state, Path cardsPath) throws IOException {
 		state.cardsDrawPile = new HashMap<>();
 		state.playerCardMap = new HashMap<>();
+		state.cardsOpen = new HashMap<>();
 
 		List<String> data = Files.lines(cardsPath).collect(Collectors.toList());
 
@@ -112,10 +116,69 @@ public class StateManager {
 			TrackType trackType = Extensions.toTrackType(elements[0].trim());
 			int count = Integer.parseInt(elements[1].trim());
 			state.cardsDrawPile.put(trackType, count);
+			state.cardsOpen.put(trackType, 0);
+		}
+
+		// open cards
+		for (int i = 0; i < 5; i++) {
+			TrackType nextCard = Extensions.randomDraw(state.cardsDrawPile);
+			Extensions.transfer(state.cardsDrawPile, state.cardsOpen, nextCard);
 		}
 	}
 
-	private static void setupPlayer(State state, Player player) {
+	public static void setupPlayer(State state, Player player) {
+		// tickets
+		if (state.playerTicketMap == null) {
+			state.playerTicketMap = new HashMap<>();
+		}
+		state.playerTicketMap.put(player, new LinkedList<Ticket>());
+		for (int i = 0; i < 3; i++) {
+			Ticket ticket = state.ticketDrawPile.removeFirst();
+			state.playerTicketMap.get(player).add(ticket);
+		}
+
+		// cards
+		if (state.playerCardMap == null) {
+			state.playerCardMap = new HashMap<>();
+		}
+		state.playerCardMap.put(player, new HashMap<>());
+		for (TrackType t : state.cardsDrawPile.keySet()) {
+			state.playerCardMap.get(player).put(t, 0);
+		}
+		for (int i = 0; i < 4; i++) {
+			TrackType nextCard = Extensions.randomDraw(state.cardsDrawPile);
+			Extensions.transfer(state.cardsDrawPile, state.playerCardMap.get(player), nextCard);
+		}
+
+		// trains
+		if (state.trainPile == null) {
+			state.trainPile = new HashMap<>();
+		}
+		state.trainPile.put(player, 50);
+
+		// points
+		if (state.playerPointsMap == null) {
+			state.playerPointsMap = new HashMap<>();
+		}
+		state.playerPointsMap.put(player, 0);
+	}
+
+	public static boolean finalTurnCheck(State state) {
+		if (state.isFinalTurn) {
+			return true;
+		}
+		for (Entry<Player, Integer> entry : state.trainPile.entrySet()) {
+			if (entry.getValue() <= 2) {
+				if (!state.isFinalTurn) {
+					state.isFinalTurn = true;
+					return false;
+				}
+			}
+		}
+		return false;
+	}
+	
+	public static void turnCycle(State state, List<Player> players) {
 		// TODO
 	}
 }

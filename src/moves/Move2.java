@@ -8,7 +8,7 @@ import engine.Track.TrackType;
 
 public abstract class Move2 extends Move {
 
-	public abstract Move2Result accept(Move2Visitor visitor);
+	public abstract Move2Result accept(Move2Visitor visitor, Move1Result prevMoveResult);
 
 	public MoveType getMoveType() {
 		return MoveType.MOVE2;

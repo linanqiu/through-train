@@ -6,13 +6,18 @@ import engine.Ticket;
 
 public class Move2ReturnTicket extends Move2 {
 
-	HashSet<Ticket> tickets;
+	public HashSet<Ticket> tickets;
 
 	Move2ReturnTicket(HashSet<Ticket> tickets) {
 		this.tickets = tickets;
 	}
 
-	public Move2Result accept(Move2Visitor visitor) {
-		return visitor.visit(this);
+	public Move2Result accept(Move2Visitor visitor, Move1Result prevMoveResult) {
+		return visitor.visit(this, prevMoveResult);
+	}
+
+	@Override
+	public String toString() {
+		return "ReturnTickets=" + tickets.toString();
 	}
 }

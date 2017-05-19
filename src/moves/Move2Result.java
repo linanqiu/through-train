@@ -22,4 +22,9 @@ public class Move2Result extends MoveResult {
 	public static Move2Result failure(Move2 prevMove) {
 		return new Move2Result(prevMove, false);
 	}
+
+	@Override
+	public String toString() {
+		return "Move2 " + success + " " + prevMove;
+	}
 }

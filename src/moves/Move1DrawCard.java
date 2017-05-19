@@ -21,4 +21,9 @@ public class Move1DrawCard extends Move1 {
 	public Move1Result accept(Move1Visitor v) {
 		return v.visit(this);
 	}
+
+	@Override
+	public String toString() {
+		return fromPile ? "DrawCard1FromPile" : ("DrawCard1=" + trackType);
+	}
 }

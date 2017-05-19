@@ -14,12 +14,17 @@ public class Move1Result extends MoveResult {
 	public boolean isSuccessful() {
 		return success;
 	}
-	
+
 	public static Move1Result success(Move1 prevMove) {
 		return new Move1Result(prevMove, true);
 	}
 
 	public static Move1Result failure(Move1 prevMove) {
 		return new Move1Result(prevMove, false);
+	}
+
+	@Override
+	public String toString() {
+		return "Move1 " + success + " " + prevMove;
 	}
 }

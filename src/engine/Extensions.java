@@ -49,8 +49,13 @@ public class Extensions {
 		return type;
 	}
 
-	public static <T> T randomDraw(Map<T, Integer> map) {
+	public static <T> int countMap(Map<T, Integer> map) {
 		int sum = map.values().stream().collect(Collectors.summingInt(Integer::intValue));
+		return sum;
+	}
+
+	public static <T> T randomDraw(Map<T, Integer> map) {
+		int sum = countMap(map);
 		int draw = random.nextInt(sum);
 
 		int i = 0;

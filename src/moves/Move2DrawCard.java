@@ -17,7 +17,12 @@ public class Move2DrawCard extends Move2 {
 		fromPile = false;
 	}
 
-	public Move2Result accept(Move2Visitor v) {
-		return v.visit(this);
+	public Move2Result accept(Move2Visitor v, Move1Result prevMoveResult) {
+		return v.visit(this, prevMoveResult);
+	}
+	
+	@Override
+	public String toString() {
+		return fromPile ? "DrawCard1FromPile" : ("DrawCard1=" + trackType);
 	}
 }

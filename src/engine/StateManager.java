@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
@@ -17,6 +18,7 @@ import moves.Move.MoveType;
 import moves.Move1;
 import moves.Move1DrawCard;
 import moves.Move1DrawTicket;
+import moves.Move1DrawTicketResult;
 import moves.Move1Result;
 import moves.Move1Track;
 import moves.Move1Visitor;
@@ -201,14 +203,18 @@ public class StateManager {
 			do {
 				Move1 move1 = player.getMove1(state);
 				result1 = processMove(state, player, move1);
+				System.out.println(String.format("%s: %s", player, result1));
 			} while (!result1.success);
 
 			Move2Result result2;
 			state.currentMoveType = MoveType.MOVE2;
-			do {
-				Move2 move2 = player.getMove2(state, result1);
-				result2 = processMove(state, player, move2);
-			} while (!result2.success);
+			if (!ValidMoves.calculateValidMove2s(state, player, result1).isEmpty()) {
+				do {
+					Move2 move2 = player.getMove2(state, result1);
+					result2 = processMove(state, player, move2, result1);
+					System.out.println(String.format("%s: %s", player, result2));
+				} while (!result2.success);
+			}
 		}
 	}
 
@@ -218,9 +224,9 @@ public class StateManager {
 		return result;
 	}
 
-	public static Move2Result processMove(State state, Player player, Move2 move) {
+	public static Move2Result processMove(State state, Player player, Move2 move, Move1Result result1) {
 		Move2Maker visitor = new Move2Maker(state, player);
-		Move2Result result = move.accept(visitor);
+		Move2Result result = move.accept(visitor, result1);
 		return result;
 	}
 
@@ -258,19 +264,53 @@ public class StateManager {
 				return Move1Result.failure(move);
 			}
 
+			Extensions.transfer(state.playerCardMap.get(player), state.cardsDrawPile, track.type, track.length);
+
+			track.claim(player);
+
 			return Move1Result.success(move);
 		}
 
 		@Override
 		public Move1Result visit(Move1DrawTicket move) {
-			// TODO Auto-generated method stub
-			return Move1Result.success(move);
+			int ticketsLeftCount = state.ticketDrawPile.size();
+			if (ticketsLeftCount <= 0) {
+				return Move1DrawTicketResult.failure(move);
+			}
+
+			HashSet<Ticket> ticketsDrawn = new HashSet<>();
+			for (int i = 0; i < Math.min(ticketsLeftCount, 3); i++) {
+				Ticket ticket = state.ticketDrawPile.removeFirst();
+				state.playerTicketMap.get(player).add(ticket);
+				ticketsDrawn.add(ticket);
+			}
+			return Move1DrawTicketResult.success(move, ticketsDrawn);
 		}
 
 		@Override
 		public Move1Result visit(Move1DrawCard move) {
-			// TODO Auto-generated method stub
-			return Move1Result.success(move);
+			if (move.fromPile) {
+				// pile has enough cards
+				if (Extensions.countMap(state.cardsDrawPile) <= 0) {
+					return Move1Result.failure(move);
+				}
+				TrackType type = Extensions.randomDraw(state.cardsDrawPile);
+				Extensions.transfer(state.cardsDrawPile, state.playerCardMap.get(player), type);
+				return Move1Result.success(move);
+			} else {
+				// open has enough cards
+				TrackType type = move.trackType;
+				if (state.cardsOpen.get(type) <= 0) {
+					return Move1Result.failure(move);
+				}
+				Extensions.transfer(state.cardsOpen, state.playerCardMap.get(player), type);
+				// replenish
+				if (Extensions.countMap(state.cardsDrawPile) > 0) {
+					TrackType nextType = Extensions.randomDraw(state.cardsDrawPile);
+					Extensions.transfer(state.cardsDrawPile, state.cardsOpen, nextType);
+				}
+				return Move1Result.success(move);
+			}
 		}
 	}
 
@@ -285,15 +325,58 @@ public class StateManager {
 		}
 
 		@Override
-		public Move2Result visit(Move2ReturnTicket move) {
-			// TODO Auto-generated method stub
+		public Move2Result visit(Move2ReturnTicket move, Move1Result prevResult) {
+			if (move.tickets.size() > 2) {
+				return Move2Result.failure(move);
+			}
+
+			if (!(prevResult instanceof Move1DrawTicketResult)) {
+				throw new IllegalArgumentException("Move1 not Move1DrawTicket");
+			}
+
+			Move1DrawTicketResult prevMoveDrawTicket = (Move1DrawTicketResult) prevResult;
+
+			for (Ticket ticket : move.tickets) {
+				if (!prevMoveDrawTicket.tickets.contains(ticket)) {
+					throw new IllegalArgumentException("You tried to return a card that you didn't draw");
+				}
+				state.playerTicketMap.get(player).remove(ticket);
+				state.ticketDrawPile.addLast(ticket);
+			}
 			return Move2Result.success(move);
 		}
 
 		@Override
-		public Move2Result visit(Move2DrawCard move) {
-			// TODO Auto-generated method stub
-			return Move2Result.success(move);
+		public Move2Result visit(Move2DrawCard move, Move1Result prevResult) {
+
+			if (move.fromPile) {
+				// pile has enough cards
+				if (Extensions.countMap(state.cardsDrawPile) <= 0) {
+					return Move2Result.failure(move);
+				}
+				TrackType type = Extensions.randomDraw(state.cardsDrawPile);
+				Extensions.transfer(state.cardsDrawPile, state.playerCardMap.get(player), type);
+				return Move2Result.success(move);
+			} else {
+				// open has enough cards
+				TrackType type = move.trackType;
+
+				// can't draw wildcard again
+				if (type == TrackType.EMPTY) {
+					return Move2Result.failure(move);
+				}
+
+				if (state.cardsOpen.get(type) <= 0) {
+					return Move2Result.failure(move);
+				}
+				Extensions.transfer(state.cardsOpen, state.playerCardMap.get(player), type);
+				// replenish
+				if (Extensions.countMap(state.cardsDrawPile) > 0) {
+					TrackType nextType = Extensions.randomDraw(state.cardsDrawPile);
+					Extensions.transfer(state.cardsDrawPile, state.cardsOpen, nextType);
+				}
+				return Move2Result.success(move);
+			}
 		}
 	}
 }

@@ -22,6 +22,7 @@ public class Track {
 	public void claim(Player player) {
 		if (this.player == null) {
 			this.player = player;
+			return;
 		}
 		throw new IllegalArgumentException(
 				String.format("Track already claimed. Can't be claimed by player %s", player));

@@ -127,7 +127,8 @@ public class ValidMoves {
 
 	private static List<Move2> getValidOpenCardDraws2(State state) {
 		return state.cardsOpen.entrySet().stream().filter(e -> e.getValue() > 0)
-				.map(e -> Move2.drawFromOpen(e.getKey())).collect(Collectors.toList());
+				.filter(e -> e.getKey() != TrackType.EMPTY).map(e -> Move2.drawFromOpen(e.getKey()))
+				.collect(Collectors.toList());
 	}
 
 	private static List<Move2> getValidReturnTickets(HashSet<Ticket> tickets) {

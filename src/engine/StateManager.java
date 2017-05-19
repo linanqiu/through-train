@@ -13,6 +13,19 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import engine.Track.TrackType;
+import moves.Move.MoveType;
+import moves.Move1;
+import moves.Move1DrawCard;
+import moves.Move1DrawTicket;
+import moves.Move1Result;
+import moves.Move1Track;
+import moves.Move1Visitor;
+import moves.Move2;
+import moves.Move2DrawCard;
+import moves.Move2Result;
+import moves.Move2ReturnTicket;
+import moves.Move2Visitor;
+import players.Player;
 
 public class StateManager {
 	public static void readData(State state, String path) throws IOException {
@@ -41,6 +54,7 @@ public class StateManager {
 	private static void setupStations(State state, Path stationsPath) throws IOException {
 		state.stationTrackMap = new HashMap<>();
 		state.stationNameMap = new HashMap<>();
+		state.tracks = new LinkedList<>();
 
 		List<String> data = Files.lines(stationsPath).collect(Collectors.toList());
 		int index = 0;
@@ -65,6 +79,7 @@ public class StateManager {
 					stationB, index++);
 			state.stationTrackMap.get(stationA).add(track);
 			state.stationTrackMap.get(stationB).add(track);
+			state.tracks.add(track);
 		}
 	}
 
@@ -177,8 +192,108 @@ public class StateManager {
 		}
 		return false;
 	}
-	
+
 	public static void turnCycle(State state, List<Player> players) {
-		// TODO
+		for (Player player : players) {
+			state.currentPlayer = player;
+			state.currentMoveType = MoveType.MOVE1;
+			Move1Result result1;
+			do {
+				Move1 move1 = player.getMove1(state);
+				result1 = processMove(state, player, move1);
+			} while (!result1.success);
+
+			Move2Result result2;
+			state.currentMoveType = MoveType.MOVE2;
+			do {
+				Move2 move2 = player.getMove2(state, result1);
+				result2 = processMove(state, player, move2);
+			} while (!result2.success);
+		}
+	}
+
+	public static Move1Result processMove(State state, Player player, Move1 move) {
+		Move1Maker visitor = new Move1Maker(state, player);
+		Move1Result result = move.accept(visitor);
+		return result;
+	}
+
+	public static Move2Result processMove(State state, Player player, Move2 move) {
+		Move2Maker visitor = new Move2Maker(state, player);
+		Move2Result result = move.accept(visitor);
+		return result;
+	}
+
+	private static class Move1Maker implements Move1Visitor {
+
+		private State state;
+		private Player player;
+
+		public Move1Maker(State state, Player player) {
+			this.state = state;
+			this.player = player;
+		}
+
+		@Override
+		public Move1Result visit(Move1Track move) {
+			Track track = move.track;
+
+			// cannot claim claimed track
+			if (!track.isUnclaimed()) {
+				return Move1Result.failure(move);
+			}
+
+			// ensure enough cards
+			HashMap<TrackType, Integer> playerCards = state.playerCardMap.get(player);
+			int wildcardCount = playerCards.getOrDefault(TrackType.EMPTY, 0);
+			int sameCount = playerCards.getOrDefault(track.type, 0);
+			int totalMatchCardCount = wildcardCount + sameCount;
+			if (track.length > totalMatchCardCount) {
+				return Move1Result.failure(move);
+			}
+
+			// ensure enough trains
+			int trainCount = state.trainPile.get(player);
+			if (track.length > trainCount) {
+				return Move1Result.failure(move);
+			}
+
+			return Move1Result.success(move);
+		}
+
+		@Override
+		public Move1Result visit(Move1DrawTicket move) {
+			// TODO Auto-generated method stub
+			return Move1Result.success(move);
+		}
+
+		@Override
+		public Move1Result visit(Move1DrawCard move) {
+			// TODO Auto-generated method stub
+			return Move1Result.success(move);
+		}
+	}
+
+	private static class Move2Maker implements Move2Visitor {
+
+		private State state;
+		private Player player;
+
+		public Move2Maker(State state, Player player) {
+			this.state = state;
+			this.player = player;
+		}
+
+		@Override
+		public Move2Result visit(Move2ReturnTicket move) {
+			// TODO Auto-generated method stub
+			return Move2Result.success(move);
+		}
+
+		@Override
+		public Move2Result visit(Move2DrawCard move) {
+			// TODO Auto-generated method stub
+			return Move2Result.success(move);
+		}
 	}
 }

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -195,26 +196,44 @@ public class StateManager {
 		return false;
 	}
 
-	public static void turnCycle(State state, List<Player> players) {
+	public static boolean turnCycle(State state, List<Player> players) {
 		for (Player player : players) {
-			state.currentPlayer = player;
-			state.currentMoveType = MoveType.MOVE1;
-			Move1Result result1;
-			do {
-				Move1 move1 = player.getMove1(state);
-				result1 = processMove(state, player, move1);
-				System.out.println(String.format("%s: %s", player, result1));
-			} while (!result1.success);
+			singleTurn(state, player);
 
-			Move2Result result2;
-			state.currentMoveType = MoveType.MOVE2;
-			if (!ValidMoves.calculateValidMove2s(state, player, result1).isEmpty()) {
-				do {
-					Move2 move2 = player.getMove2(state, result1);
-					result2 = processMove(state, player, move2, result1);
-					System.out.println(String.format("%s: %s", player, result2));
-				} while (!result2.success);
+			if (finalTurnCheck(state)) {
+				System.out.println("Declaring final turn");
+				int currentPlayerPosition = players.indexOf(player);
+				ArrayList<Player> playersArrayList = new ArrayList<Player>(players);
+
+				for (int i = 1; i < players.size() + 1; i++) {
+					int index = (currentPlayerPosition + i) % players.size();
+					Player playerAtIndex = playersArrayList.get(index);
+					singleTurn(state, playerAtIndex);
+				}
+				return true;
 			}
+		}
+		return false;
+	}
+
+	private static void singleTurn(State state, Player player) {
+		state.currentPlayer = player;
+		state.currentMoveType = MoveType.MOVE1;
+		Move1Result result1;
+		do {
+			Move1 move1 = player.getMove1(state);
+			result1 = processMove(state, player, move1);
+			System.out.println(String.format("%s: %s", player, result1));
+		} while (!result1.success);
+
+		Move2Result result2;
+		state.currentMoveType = MoveType.MOVE2;
+		if (!ValidMoves.calculateValidMove2s(state, player, result1).isEmpty()) {
+			do {
+				Move2 move2 = player.getMove2(state, result1);
+				result2 = processMove(state, player, move2, result1);
+				System.out.println(String.format("%s: %s", player, result2));
+			} while (!result2.success);
 		}
 	}
 
@@ -264,7 +283,15 @@ public class StateManager {
 				return Move1Result.failure(move);
 			}
 
-			Extensions.transfer(state.playerCardMap.get(player), state.cardsDrawPile, track.type, track.length);
+			if (sameCount > track.length) {
+				Extensions.transfer(state.playerCardMap.get(player), state.cardsDrawPile, track.type, track.length);
+			} else {
+				Extensions.transfer(state.playerCardMap.get(player), state.cardsDrawPile, track.type, sameCount);
+				Extensions.transfer(state.playerCardMap.get(player), state.cardsDrawPile, TrackType.EMPTY,
+						track.length - sameCount);
+			}
+
+			Extensions.decrement(state.trainPile, player, track.length);
 
 			track.claim(player);
 

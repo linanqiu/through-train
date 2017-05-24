@@ -5,6 +5,7 @@ import java.util.Random;
 
 import engine.State;
 import engine.ValidMoves;
+import engine.Track.TrackType;
 import moves.Move1;
 import moves.Move1Result;
 import moves.Move2;
@@ -19,9 +20,9 @@ public class PlayerDummy extends Player {
 
 	@Override
 	public Move1 getMove1(State state) {
-		if (random.nextDouble() < 0.5) {
-			return Move1.drawFromPile();
-		}
+		// if (random.nextDouble() < 0.2) {
+		// return Move1.drawFromOpen(TrackType.EMPTY);
+		// }
 		ArrayList<Move1> moves = new ArrayList<>(ValidMoves.calculateValidMove1s(state, this));
 		int choice = random.nextInt(moves.size());
 		Move1 move = moves.get(choice);
@@ -30,9 +31,9 @@ public class PlayerDummy extends Player {
 
 	@Override
 	public Move2 getMove2(State state, Move1Result prevMoveResult) {
-		if (random.nextDouble() < 0.5) {
-			return Move2.drawFromPile();
-		}
+		// if (random.nextDouble() < 0.2) {
+		// return Move2.drawFromPile();
+		// }
 		ArrayList<Move2> moves = new ArrayList<>(ValidMoves.calculateValidMove2s(state, this, prevMoveResult));
 		int choice = random.nextInt(moves.size());
 		Move2 move = moves.get(choice);

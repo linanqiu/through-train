@@ -112,7 +112,7 @@ public class ValidMoves {
 		int trainCount = state.trainPile.get(player);
 
 		return state.tracks.stream().filter(t -> t.isUnclaimed())
-				.filter(t -> wildcardCount + playerCardCounts.getOrDefault(t, 0) >= t.length)
+				.filter(t -> wildcardCount + playerCardCounts.getOrDefault(t.type, 0) >= t.length)
 				.filter(t -> trainCount >= t.length).map(t -> Move1.claimTrack(t)).collect(Collectors.toList());
 	}
 

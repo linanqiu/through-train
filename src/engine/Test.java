@@ -13,17 +13,19 @@ public class Test {
 			State state = new State();
 			StateManager.readData(state, "/Users/linanqiu/Desktop/through-train/");
 
-			Player player1 = new PlayerDummy("player1");
-			Player player2 = new PlayerDummy("player2");
-			StateManager.setupPlayer(state, player1);
-			StateManager.setupPlayer(state, player2);
-
 			List<Player> players = new LinkedList<>();
-			players.add(player1);
-			players.add(player2);
+			for (int i = 0; i < 4; i++) {
+				Player player = new PlayerDummy(String.format("Player %d", i));
+				players.add(player);
+				StateManager.setupPlayer(state, player);
+			}
 
-			for (int i = 0; i < 100; i++) {
-				StateManager.turnCycle(state, players);
+			for (int i = 0; i < 500; i++) {
+				System.out.println(String.format("Turn %d", i));
+				if (StateManager.turnCycle(state, players)) {
+					System.out.println("Game ended");
+					break;
+				}
 			}
 
 			// StateManager.setupPlayer(state, player2);

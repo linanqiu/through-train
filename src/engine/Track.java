@@ -58,7 +58,7 @@ public class Track {
 
 	@Override
 	public String toString() {
-		return String.format("@%d TRA(%s -> %s) %s %d", id, stations.a, stations.b, type, length);
+		return String.format("@%d TRA(%s -> %s) %s %d %s", id, stations.a, stations.b, type, length, player);
 	}
 
 	public enum TrackType {
